@@ -1,0 +1,311 @@
+#!/bin/bash
+
+MODE="${1:-xrun}"
+#MODE="${1:-xtest}"
+shift || true
+
+NWN_ARGS=("$@")
+
+XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
+
+if [ -d "/opt/system/Tools/PortMaster/" ]; then
+  controlfolder="/opt/system/Tools/PortMaster"
+elif [ -d "/opt/tools/PortMaster/" ]; then
+  controlfolder="/opt/tools/PortMaster"
+elif [ -d "$XDG_DATA_HOME/PortMaster/" ]; then
+  controlfolder="$XDG_DATA_HOME/PortMaster"
+else
+  controlfolder="/roms/ports/PortMaster"
+fi
+
+source "$controlfolder/control.txt"
+source "$controlfolder/device_info.txt"
+[ -f "${controlfolder}/mod_${CFW_NAME}.txt" ] && source "${controlfolder}/mod_${CFW_NAME}.txt"
+
+get_controls
+
+GAMEDIR="/$directory/ports/nwn-ee"
+BINDIR="$GAMEDIR/bin/linux-arm64"
+BIN="$BINDIR/nwmain-linux"
+XCONF="$GAMEDIR/xorg-nwn.conf"
+XLOG="$GAMEDIR/xorg.log"
+
+> "$GAMEDIR/log.txt" && exec > >(tee "$GAMEDIR/log.txt") 2>&1
+
+cleanup() {
+  echo "=== cleanup ==="
+  $ESUDO killall -9 nwmain-linux 2>/dev/null || true
+  $ESUDO killall -9 Xorg 2>/dev/null || true
+  printf "\033c" >> /dev/tty1 2>/dev/null || true
+}
+
+trap cleanup EXIT INT TERM
+
+export DEVICE_ARCH="${DEVICE_ARCH:-aarch64}"
+
+if [ -f "${controlfolder}/libgl_${CFW_NAME}.txt" ]; then
+  source "${controlfolder}/libgl_${CFW_NAME}.txt"
+else
+  source "${controlfolder}/libgl_default.txt"
+fi
+
+if [ "$LIBGL_FB" != "" ]; then
+  export SDL_VIDEO_GL_DRIVER="$GAMEDIR/gl4es.aarch64/libGL.so.1"
+  export SDL_VIDEO_EGL_DRIVER="$GAMEDIR/gl4es.aarch64/libEGL.so.1"
+fi
+
+export LD_LIBRARY_PATH="$GAMEDIR/libs:$BINDIR:$LD_LIBRARY_PATH"
+export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
+
+export SDL_AUDIODRIVER=dummy
+export ALSOFT_DRIVERS=null
+export ALSOFT_LOGLEVEL=3
+
+echo "=== NWN EE R36S diagnostics ==="
+date
+uname -a
+echo "MODE=$MODE"
+echo "USER=$USER"
+echo "HOME=$HOME"
+echo "CFW_NAME=$CFW_NAME"
+echo "DEVICE_ARCH=$DEVICE_ARCH"
+echo "directory=$directory"
+echo "GAMEDIR=$GAMEDIR"
+echo "BINDIR=$BINDIR"
+echo "BIN=$BIN"
+echo "XCONF=$XCONF"
+echo "XLOG=$XLOG"
+echo
+
+echo "=== X11 checks ==="
+which Xorg || true
+which X || true
+which startx || true
+which xinit || true
+echo "DISPLAY=$DISPLAY"
+echo "WAYLAND_DISPLAY=$WAYLAND_DISPLAY"
+echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
+echo
+
+echo "=== DRM/TTY checks ==="
+ls -l /dev/dri 2>/dev/null || true
+ls -l /dev/dri/card0 2>/dev/null || true
+ls -l /dev/tty1 2>/dev/null || true
+ls -l /dev/fb0 2>/dev/null || true
+echo
+
+echo "=== Runtime env ==="
+echo "LIBGL_FB=$LIBGL_FB"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+echo "SDL_VIDEO_GL_DRIVER=$SDL_VIDEO_GL_DRIVER"
+echo "SDL_VIDEO_EGL_DRIVER=$SDL_VIDEO_EGL_DRIVER"
+echo "SDL_VIDEODRIVER=$SDL_VIDEODRIVER"
+echo "SDL_AUDIODRIVER=$SDL_AUDIODRIVER"
+echo "ALSOFT_DRIVERS=$ALSOFT_DRIVERS"
+echo
+
+echo "=== Binary checks ==="
+file "$BIN" || true
+readelf -d "$BIN" | grep NEEDED || true
+strings "$BIN" | grep -E "KMSDRM|kmsdrm|Wayland|wayland|SDL X11 video driver|SDL dummy video driver|No available video device|Couldn't open X11 display" || true
+echo
+
+$ESUDO chmod 666 /dev/tty1 2>/dev/null || true
+$ESUDO chmod 666 /dev/uinput 2>/dev/null || true
+$ESUDO chmod 666 /dev/fb0 2>/dev/null || true
+$ESUDO chmod 666 /dev/dri/card0 2>/dev/null || true
+$ESUDO chmod 666 /dev/input/js0 2>/dev/null || true
+$ESUDO chmod 666 /dev/input/event2 2>/dev/null || true
+$ESUDO chmod 666 /dev/input/event3 2>/dev/null || true
+
+cat > "$XCONF" <<'EOF'
+Section "Device"
+    Identifier "Card0"
+    Driver "modesetting"
+    Option "kmsdev" "/dev/dri/card0"
+    Option "AccelMethod" "none"
+EndSection
+
+Section "Screen"
+    Identifier "Screen0"
+    Device "Card0"
+    DefaultDepth 24
+EndSection
+EOF
+
+#cat > "$XCONF" <<'EOF'
+#Section "Device"
+#    Identifier "Card0"
+#    Driver "modesetting"
+#    Option "kmsdev" "/dev/dri/card0"
+#    Option "AccelMethod" "none"
+#EndSection
+
+#Section "Screen"
+#    Identifier "Screen0"
+#    Device "Card0"
+#    DefaultDepth 24
+#    SubSection "Display"
+#        Depth 24
+#        Virtual 1024 768
+#    EndSubSection
+#EndSection
+#EOF
+
+cd "$BINDIR" || exit 1
+
+if [ "$MODE" = "diag" ]; then
+  echo "=== Starting NWN diagnostic dummy run ==="
+
+  export SDL_VIDEODRIVER=dummy
+
+  ./nwmain-linux "${NWN_ARGS[@]}" > "$GAMEDIR/dummy.log" 2>&1 &
+  pid=$!
+
+  echo "NWN pid=$pid"
+  ##sleep 45
+  sleep 15
+
+  echo "=== stopping NWN pid=$pid ==="
+  kill -TERM "$pid" 2>/dev/null || true
+  sleep 3
+  kill -KILL "$pid" 2>/dev/null || true
+  $ESUDO killall -9 nwmain-linux 2>/dev/null || true
+
+  echo "=== dummy.log tail ==="
+  tail -160 "$GAMEDIR/dummy.log" || true
+  exit 0
+fi
+
+if [ "$MODE" = "run" ]; then
+  echo "=== Starting NWN normal run without Xorg ==="
+
+  unset SDL_VIDEODRIVER
+
+  ./nwmain-linux "${NWN_ARGS[@]}"
+  code=$?
+
+  echo "=== NWN exited with code $code ==="
+  exit "$code"
+fi
+
+if [ "$MODE" = "xtest" ]; then
+  echo "=== Starting Xorg test only ==="
+
+  rm -f "$XLOG"
+
+  $ESUDO Xorg :0 \
+    -config "$XCONF" \
+    -logfile "$XLOG" \
+    -retro \
+    -nolisten tcp \
+    -keeptty \
+    vt1 &
+
+  xpid=$!
+  echo "Xorg pid=$xpid"
+
+  sleep 15
+
+  echo "=== stopping Xorg pid=$xpid ==="
+  $ESUDO kill -TERM "$xpid" 2>/dev/null || true
+  sleep 2
+  $ESUDO kill -KILL "$xpid" 2>/dev/null || true
+  $ESUDO killall -9 Xorg 2>/dev/null || true
+
+  echo "=== xorg.log errors ==="
+  grep -E "\(EE\)|\(WW\)" "$XLOG" || true
+
+  echo "=== xorg.log tail ==="
+  tail -200 "$XLOG" || true
+  exit 0
+fi
+
+if [ "$MODE" = "xrun" ]; then
+  echo "=== Starting Xorg for NWN ==="
+
+  rm -f "$XLOG" "$GAMEDIR/nwn-x11.log"
+
+  $ESUDO Xorg :0 \
+    -config "$XCONF" \
+    -logfile "$XLOG" \
+    -nolisten tcp \
+    -keeptty \
+    vt1 &
+
+  xpid=$!
+  echo "Xorg pid=$xpid"
+
+  sleep 5
+
+  echo "=== X display info ==="
+  DISPLAY=:0 xdpyinfo 2>/dev/null | grep -E "dimensions|depth|resolution" || true
+  DISPLAY=:0 xrandr 2>/dev/null || true
+
+  export DISPLAY=:0
+  unset SDL_VIDEODRIVER
+
+#####################################################################################
+  echo "=== X display info before xrandr hack ==="
+  xdpyinfo 2>/dev/null | grep -E "dimensions|depth|resolution" || true
+  xrandr --verbose 2>/dev/null || true
+
+  echo "=== Trying xrandr mode switch ==="
+  xrandr --output DSI-1 --mode 800x600 2>/dev/null || true
+  sleep 1
+
+  echo "=== X display info after xrandr hack ==="
+  xdpyinfo 2>/dev/null | grep -E "dimensions|depth|resolution" || true
+  xrandr --verbose 2>/dev/null || true
+#####################################################################################
+  export SDL_VIDEO_X11_XRANDR=1
+  export SDL_VIDEO_X11_XVIDMODE=0
+  export SDL_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR=0
+  export vblank_mode=0
+  export SDL_JOYSTICK_DEVICE=/dev/input/js0
+
+  echo "DISPLAY=$DISPLAY"
+  echo "SDL_VIDEO_X11_XRANDR=$SDL_VIDEO_X11_XRANDR"
+  echo "SDL_VIDEO_X11_XVIDMODE=$SDL_VIDEO_X11_XVIDMODE"
+  echo "SDL_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR=$SDL_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR"
+
+  echo "=== Starting NWN under Xorg ==="
+  echo "gptokeyb command: $GPTOKEYB $BIN -c $GAMEDIR/nwmain-linux.gptk"
+  $GPTOKEYB "$BIN" -c "$GAMEDIR/nwmain-linux.gptk" &
+  ./nwmain-linux "${NWN_ARGS[@]}" > "$GAMEDIR/nwn-x11.log" 2>&1 &
+  nwpid=$!
+  echo "NWN pid=$nwpid"
+
+  #sleep 60
+  sleep 300
+
+  echo "=== stopping NWN pid=$nwpid ==="
+  kill -TERM "$nwpid" 2>/dev/null || true
+  sleep 3
+  kill -KILL "$nwpid" 2>/dev/null || true
+  $ESUDO killall -9 nwmain-linux 2>/dev/null || true
+
+  echo "=== stopping Xorg pid=$xpid ==="
+  $ESUDO kill -TERM "$xpid" 2>/dev/null || true
+  sleep 2
+  $ESUDO kill -KILL "$xpid" 2>/dev/null || true
+  $ESUDO killall -9 Xorg 2>/dev/null || true
+
+  echo "=== nwn-x11.log tail ==="
+  tail -200 "$GAMEDIR/nwn-x11.log" || true
+
+  echo "=== xorg.log errors ==="
+  grep -E "\(EE\)|\(WW\)" "$XLOG" || true
+
+  echo "=== xorg.log tail ==="
+  tail -200 "$XLOG" || true
+
+  exit 0
+fi
+
+echo "Unknown MODE=$MODE"
+echo "Use: $0 diag"
+echo "or:  $0 run"
+echo "or:  $0 xtest"
+echo "or:  $0 xrun"
+exit 1
