@@ -26,3 +26,5 @@ __pycache__/
 /port/bin/linux-arm64/nwserver-linux
 /port/lang/en/
 /dev/external/aurora-borealius/
+/dev/pc/userdir/cryptographic_secret
+/dev/pc/userdir/nwsync/nwsyncmeta.sqlite3

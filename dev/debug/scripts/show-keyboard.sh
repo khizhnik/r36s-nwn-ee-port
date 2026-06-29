@@ -1,7 +1,12 @@
 #!/bin/bash
 
+set +e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEBUG_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 export DISPLAY=:0
-LOGFILE="/roms/ports/nwn-ee/show-keyboard.log"
+LOGFILE="$DEBUG_DIR/logs/show-keyboard.log"
 mkdir -p "$(dirname "$LOGFILE")" 2>/dev/null || true
 
 log() {

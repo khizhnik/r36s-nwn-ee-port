@@ -2,14 +2,21 @@
 set -euo pipefail
 shopt -s nullglob
 
-ROOT=/home/khizhnik/Games/PortMaster/r36s-nwn-ee-port
-OLD=/home/khizhnik/Games/PortMaster/nwn-ee
-SHADOW=$OLD/SHADOW-TEST
-DEST=$ROOT/dev
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+OLD_REPO="${OLD_REPO:-$REPO_ROOT/../nwn-ee}"
+if [ -d "$OLD_REPO" ]; then
+  OLD_REPO="$(cd "$OLD_REPO" && pwd)"
+fi
+TMP_ROOT="${TMP_ROOT:-${TMPDIR:-/tmp}}"
+SHADOW=$OLD_REPO/SHADOW-TEST
+DEST=$REPO_ROOT/dev
 MANIFEST_DIR=$DEST/inventory/manifests
 TREE_DIR=$DEST/inventory/trees
 CHECKSUM_DIR=$DEST/inventory/checksums
 MISSING_OPTIONAL_FILE_LIST=$DEST/inventory/manifests/missing-optional-files.txt
+
+export REPO_ROOT OLD_REPO TMP_ROOT
 
 copy_file_if_exists() {
   local src="$1"
@@ -83,22 +90,22 @@ copy_file_if_exists "$SHADOW/R36S_SHADOW_TEST.nss" "$DEST/legacy/old-port-tree/n
 
 # Compiled artifacts (*.ncs).
 copy_file_if_exists "$SHADOW/ML_VERSION_TEST/ML_Version.ncs" "$DEST/bootstrap/build"
-copy_file_if_exists "/tmp/nwn-bootstrap-oncliententer-test/modules/r36s_onenter_log.ncs" "$DEST/bootstrap/build"
-copy_file_if_exists "/tmp/nwn-bootstrap-nui-window-test/modules/r36s_onenter_nui.ncs" "$DEST/bootstrap/build"
-copy_file_if_exists "/tmp/nwn-bootstrap-launch-test/modules/r36s_bootstrap_work.mod" "$DEST/bootstrap/build"
-copy_file_if_exists "/tmp/nwn-bootstrap-oncliententer-test/modules/r36s_bootstrap_oncliententer.mod" "$DEST/bootstrap/build"
-copy_file_if_exists "/tmp/nwn-bootstrap-test-03/modules/r36s_bootstrap_nui_window.mod" "$DEST/bootstrap/build"
-copy_file_if_exists "/tmp/nwn-bootstrap-nui-window-test/modules/r36s_bootstrap_nui_window.mod" "$DEST/bootstrap/build"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-oncliententer-test/modules/r36s_onenter_log.ncs" "$DEST/bootstrap/build"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-nui-window-test/modules/r36s_onenter_nui.ncs" "$DEST/bootstrap/build"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-launch-test/modules/r36s_bootstrap_work.mod" "$DEST/bootstrap/build"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-oncliententer-test/modules/r36s_bootstrap_oncliententer.mod" "$DEST/bootstrap/build"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-test-03/modules/r36s_bootstrap_nui_window.mod" "$DEST/bootstrap/build"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-nui-window-test/modules/r36s_bootstrap_nui_window.mod" "$DEST/bootstrap/build"
 copy_file_if_exists "$SHADOW/R36S_SHADOW_TEST.ncs" "$DEST/legacy/old-port-tree/notes"
 
 # Bootstrap test modules (*.mod).
 copy_mods_from_dir "$SHADOW/BOOTSTRAP_MODULES" "$DEST/bootstrap/modules"
 
 # Archived bootstrap userdir modules.
-copy_file_if_exists "/tmp/nwn-bootstrap-launch-test/modules/r36s_bootstrap_work.mod" "$DEST/bootstrap/userdirs/nwn-bootstrap-launch-test/modules"
-copy_file_if_exists "/tmp/nwn-bootstrap-oncliententer-test/modules/r36s_bootstrap_oncliententer.mod" "$DEST/bootstrap/userdirs/nwn-bootstrap-oncliententer-test/modules"
-copy_file_if_exists "/tmp/nwn-bootstrap-test-03/modules/r36s_bootstrap_nui_window.mod" "$DEST/bootstrap/userdirs/nwn-bootstrap-test-03/modules"
-copy_file_if_exists "/tmp/nwn-bootstrap-nui-window-test/modules/r36s_bootstrap_nui_window.mod" "$DEST/bootstrap/userdirs/nwn-bootstrap-nui-window-test/modules"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-launch-test/modules/r36s_bootstrap_work.mod" "$DEST/bootstrap/userdirs/nwn-bootstrap-launch-test/modules"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-oncliententer-test/modules/r36s_bootstrap_oncliententer.mod" "$DEST/bootstrap/userdirs/nwn-bootstrap-oncliententer-test/modules"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-test-03/modules/r36s_bootstrap_nui_window.mod" "$DEST/bootstrap/userdirs/nwn-bootstrap-test-03/modules"
+copy_file_if_exists "$TMP_ROOT/nwn-bootstrap-nui-window-test/modules/r36s_bootstrap_nui_window.mod" "$DEST/bootstrap/userdirs/nwn-bootstrap-nui-window-test/modules"
 
 # Research notes.
 copy_file_if_exists "$SHADOW/TOOLS/AuroraBorealius-Toolset-and-Shargast-by-Jaysn/TOOLCHAIN_NOTES.md" "$DEST/research/toolchain"
@@ -116,11 +123,11 @@ copy_dir_with_filter "$SHADOW/TOOLS/AuroraBorealius-Toolset-and-Shargast-by-Jays
   --exclude='.git/' \
   --exclude='aurora-borealis/dist/' \
   --exclude='aurora-borealis/aurora-borealis'
-copy_dir_with_filter "$OLD/tools/nwn_script_comp" "$DEST/external/nwn_script_comp"
+copy_dir_with_filter "$OLD_REPO/tools/nwn_script_comp" "$DEST/external/nwn_script_comp"
 
 # Toolset artifacts.
 copy_file_if_exists "$SHADOW/NUI_BOOTSTRAP/run-toolset.sh" "$DEST/toolset/scripts"
-copy_file_if_exists "/tmp/nwn-nui-toolset/modules/03_r36s_bootstrap_nui_window.mod" "$DEST/toolset/userdir/modules"
+copy_file_if_exists "$TMP_ROOT/nwn-nui-toolset/modules/03_r36s_bootstrap_nui_window.mod" "$DEST/toolset/userdir/modules"
 
 # Debug/runtime research artifacts.
 copy_file_if_exists "$SHADOW/NUI_BOOTSTRAP/run-nui-test.sh" "$DEST/debug/scripts"
@@ -157,13 +164,16 @@ find "$DEST" -path "$DEST/inventory/checksums" -prune -o -type f -print0 | sort 
 
 # Manifest generation.
 python3 - <<'PY'
+import os
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
-root = Path('/home/khizhnik/Games/PortMaster/r36s-nwn-ee-port')
+root = Path(os.environ['REPO_ROOT'])
 dev = root / 'dev'
 manifest_path = dev / 'inventory/manifests/migration-manifest.md'
 now = datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+old_repo = Path(os.environ.get('OLD_REPO', str(root.parent / 'nwn-ee')))
+tmp_root = Path(os.environ.get('TMP_ROOT', '/tmp'))
 
 categories = defaultdict(list)
 for path in dev.rglob('*'):
@@ -221,8 +231,8 @@ lines = []
 lines.append('# Migration Manifest')
 lines.append('')
 lines.append(f'- Generated: {now}')
-lines.append('- Source directories inspected: `/tmp`, `/home/khizhnik/Games/PortMaster/nwn-ee`, `SHADOW-TEST`, and all explicit project subtrees used in the bootstrap/NUI/tooling investigation.')
-lines.append('- Destination root: `/home/khizhnik/Games/PortMaster/r36s-nwn-ee-port/dev`')
+lines.append(f'- Source directories inspected: `{tmp_root}`, `{old_repo}`, `SHADOW-TEST`, and all explicit project subtrees used in the bootstrap/NUI/tooling investigation.')
+lines.append(f'- Destination root: `{dev}`')
 lines.append('- No files were deleted.')
 lines.append('- `port/` was not modified.')
 lines.append('')
@@ -242,7 +252,7 @@ lines.append('')
 lines.append('- AuroraBorealius `.git/`: 1 repository metadata tree skipped.')
 lines.append('- AuroraBorealius generated `dist/`: skipped; build output not migrated.')
 lines.append('- AuroraBorealius symlink target `aurora-borealis/aurora-borealis`: skipped; external target not migrated.')
-lines.append('- Toolset runtime caches/autosaves/temp data in `/tmp/nwn-nui-toolset`: skipped; only the saved module artifact was preserved.')
+lines.append(f'- Toolset runtime caches/autosaves/temp data in `{tmp_root}/nwn-nui-toolset`: skipped; only the saved module artifact was preserved.')
 lines.append('- Missing optional `/tmp` files: counted below as `missing_optional_files` in the manifest metadata section.')
 lines.append('- Official game data trees (`data/`, `lang/`, `hak/`, `tlk/`, `movies/`, `music/`, `premium/`) were intentionally out of scope.')
 lines.append('')
