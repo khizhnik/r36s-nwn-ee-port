@@ -1,0 +1,10 @@
+/tmp/nwn-bootstrap-oncliententer-test/modules/r36s_onenter_log.ncs
+/tmp/nwn-bootstrap-nui-window-test/modules/r36s_onenter_nui.ncs
+/tmp/nwn-bootstrap-launch-test/modules/r36s_bootstrap_work.mod
+/tmp/nwn-bootstrap-oncliententer-test/modules/r36s_bootstrap_oncliententer.mod
+/tmp/nwn-bootstrap-test-03/modules/r36s_bootstrap_nui_window.mod
+/tmp/nwn-bootstrap-nui-window-test/modules/r36s_bootstrap_nui_window.mod
+/tmp/nwn-bootstrap-launch-test/modules/r36s_bootstrap_work.mod
+/tmp/nwn-bootstrap-oncliententer-test/modules/r36s_bootstrap_oncliententer.mod
+/tmp/nwn-bootstrap-test-03/modules/r36s_bootstrap_nui_window.mod
+/tmp/nwn-bootstrap-nui-window-test/modules/r36s_bootstrap_nui_window.mod

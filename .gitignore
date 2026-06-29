@@ -1,0 +1,28 @@
+.idea
+game/
+logs/
+
+cache/
+tmp/
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+*.core
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+
+# Toolset temporary directories
+/port/data/
+/port/bin/linux-arm64/nwmain-linux
+/port/bin/linux-arm64/nwserver-linux
+/port/lang/en/
+/dev/external/aurora-borealius/

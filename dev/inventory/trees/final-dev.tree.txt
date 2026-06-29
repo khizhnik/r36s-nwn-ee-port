@@ -1,0 +1,105 @@
+# Final dev tree
+
+/home/khizhnik/Games/PortMaster/r36s-nwn-ee-port/dev
+├── baseline
+├── bootstrap
+│   ├── build
+│   │   └── ML_Version.ncs
+│   ├── docs
+│   │   ├── BOOTSTRAP_MODULE.md
+│   │   ├── LAUNCHER_PLAN.md
+│   │   ├── NUI_BUILDER_API.md
+│   │   └── NUI_COMPONENTS.md
+│   ├── modules
+│   │   ├── 00_r36s_bootstrap_clean.mod
+│   │   ├── 01_r36s_bootstrap_work.mod
+│   │   ├── 02_r36s_bootstrap_oncliententer.mod
+│   │   └── 03_r36s_bootstrap_nui_window.mod
+│   ├── scripts
+│   │   ├── ML_Version.builder_poc_confirmed.nss
+│   │   ├── ML_Version.hello_nui_working.nss
+│   │   ├── ML_Version.nss
+│   │   ├── r36s_onenter_log.nss
+│   │   └── r36s_onenter_nui.nss
+│   └── userdirs
+├── debug
+│   ├── crashreports
+│   ├── input-keyboard-diagnose.sh
+│   ├── logs
+│   │   └── NUI_EXPERIMENT_LOG.txt
+│   └── scripts
+│       ├── input-keyboard-diagnose.sh
+│       ├── run-nui-test.sh
+│       └── show-keyboard.sh
+├── docs
+├── external
+│   ├── aurora-borealius
+│   │   ├── .cargo
+│   │   ├── .gitignore
+│   │   ├── AGENTS.md
+│   │   ├── Cargo.lock
+│   │   ├── Cargo.lock.bak
+│   │   ├── Cargo.toml
+│   │   ├── TOOLCHAIN_NOTES.md
+│   │   ├── aurora-borealis
+│   │   ├── dump_body_parts.rs
+│   │   ├── dump_model.rs
+│   │   ├── dump_tex.rs
+│   │   ├── dump_tlk.rs
+│   │   ├── list_models.rs
+│   │   ├── nevercommand
+│   │   ├── nevererf
+│   │   ├── nwn-2da
+│   │   ├── nwn-3d
+│   │   ├── nwn-erf
+│   │   ├── nwn-gamemodel
+│   │   ├── nwn-gff
+│   │   ├── nwn-script
+│   │   ├── nwn-tileset
+│   │   ├── nwn-tlk
+│   │   ├── nwnsc.exe
+│   │   ├── plan_area_tabs.md
+│   │   ├── plans
+│   │   ├── run_windows.bat
+│   │   ├── run_windows.ps1
+│   │   └── src
+│   └── nwn_script_comp
+│       ├── bin
+│       └── neverwinter-x86_64-linux-gnu.zip
+├── inventory
+│   ├── artifacts.md
+│   ├── checksums
+│   ├── manifests
+│   │   └── missing-optional-files.txt
+│   ├── migrate-artifacts.sh
+│   └── trees
+│       └── final-dev.tree.txt
+├── legacy
+│   └── old-port-tree
+│       ├── config
+│       ├── notes
+│       └── scripts
+├── logs
+├── modules
+├── nui
+│   ├── docs
+│   └── sources
+├── research
+│   ├── nui
+│   │   └── builder-library
+│   └── toolchain
+│       ├── 3d-viewport.md
+│       ├── TOOLCHAIN_NOTES.md
+│       └── plan_area_tabs.md
+├── scripts
+├── tools
+│   └── show-keyboard.sh
+├── toolset
+│   ├── docs
+│   ├── scripts
+│   │   └── run-toolset.sh
+│   └── userdir
+│       └── modules
+└── working
+
+57 directories, 44 files
