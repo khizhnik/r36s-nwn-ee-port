@@ -2,21 +2,27 @@
 
 set -u
 
-GAME_ROOT="/home/khizhnik/.steam/debian-installation/steamapps/common/Neverwinter Nights"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEBUG_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$DEBUG_DIR/../.." && pwd)"
+
+STEAM_NWN_DIR="${STEAM_NWN_DIR:-$HOME/.steam/debian-installation/steamapps/common/Neverwinter Nights}"
+GAME_ROOT="$STEAM_NWN_DIR"
 GAME_BIN_DIR="$GAME_ROOT/bin/linux-x86"
-COMPILER_DIR="/home/khizhnik/Games/PortMaster/nwn-ee/tools/nwn_script_comp/bin"
-SCRIPT_SRC="/home/khizhnik/Games/PortMaster/nwn-ee/SHADOW-TEST/NUI_BOOTSTRAP/ML_Version.nss"
-USERDIR="/tmp/nwn-nui-test"
+COMPILER_DIR="$REPO_ROOT/dev/external/nwn_script_comp/bin"
+SCRIPT_SRC="$REPO_ROOT/dev/bootstrap/scripts/ML_Version.nss"
+USERDIR="$DEBUG_DIR/userdir"
+LOG_DIR="$DEBUG_DIR/logs"
 DEVDIR="$USERDIR/development"
 SCRIPT_BIN="$DEVDIR/ML_Version.ncs"
 MODULE_NAME="XP1-Chapter 2"
 TIMEOUT_SECONDS="${1:-25}"
-RUNLOG="$USERDIR/run-nui-test.log"
-CLIENT_LOG="$USERDIR/logs/nwclientLog1.txt"
-ENGINE_LOG="$USERDIR/logs/nwengineLog.txt"
+RUNLOG="$LOG_DIR/run-nui-test.log"
+CLIENT_LOG="$LOG_DIR/nwclientLog1.txt"
+ENGINE_LOG="$LOG_DIR/nwengineLog.txt"
 NWN_NUI_SOFTWARE_GL="${NWN_NUI_SOFTWARE_GL:-0}"
 
-mkdir -p "$DEVDIR"
+mkdir -p "$DEVDIR" "$LOG_DIR"
 
 echo "=== compile ==="
 echo "source=$SCRIPT_SRC"
@@ -28,6 +34,8 @@ LD_LIBRARY_PATH="$COMPILER_DIR" \
   "$SCRIPT_SRC" || exit 1
 
 echo "=== launch ==="
+echo "REPO_ROOT=$REPO_ROOT"
+echo "STEAM_NWN_DIR=$STEAM_NWN_DIR"
 echo "userdir=$USERDIR"
 echo "module=$MODULE_NAME"
 echo "timeout_seconds=$TIMEOUT_SECONDS"

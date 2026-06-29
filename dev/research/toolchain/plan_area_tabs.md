@@ -36,7 +36,7 @@ Replace the single-area "click-navigator-to-switch" flow with tabbed area editin
 - If deleted area is in `open_areas`, remove it from tabs (same logic as close)
 
 ### Files to modify
-- `/home/grimshackle/rust-neveredit/aurora-borealis/src/lib.rs` — all state, layout, and logic changes
+- `aurora-borealis/src/lib.rs` — all state, layout, and logic changes
 
 ## Verification
 1. Build: `cargo build --release --package aurora-borealis`
