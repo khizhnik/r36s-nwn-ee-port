@@ -1,0 +1,30 @@
+TODO: Move BIC parsing and saveindex generation into a shared helper.
+
+Current implementation was intentionally copied from dev
+to stabilize the first working port version.
+
+After the port is confirmed working on real hardware,
+deduplicate the implementation.
+
+TODO: bootstrap artifact versioning
+
+Current installer updates bootstrap resources only if they are missing.
+
+This is acceptable during initial development but can leave stale
+compiled resources on the target.
+
+Future improvement:
+
+Option 1 (preferred)
+- Store a bootstrap version manifest.
+- Compare version numbers.
+- Update only when bundled version is newer.
+
+Option 3
+- Development mode:
+    always overwrite bootstrap resources.
+- Release mode:
+    version based updates.
+
+Goal:
+Automatic, reliable bootstrap updates without unnecessary SD card writes.
