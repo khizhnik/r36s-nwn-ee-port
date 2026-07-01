@@ -19,3 +19,11 @@ The harness uses the Steam Neverwinter Nights installation at:
 You can override it by exporting `STEAM_NWN_DIR`.
 
 The harness is intended for desktop bootstrap testing only. It does not launch the R36S port.
+
+## Dev Run on PC
+
+To test hypothesis use:
+
+`dev/pc/scripts/run-nui-bootstrap.sh test 03_r36s_bootstrap_nui_window`
+
+`DISPLAY=:0 XAUTHORITY="$HOME/.Xauthority" dev/pc/scripts/run-nui-bootstrap.sh test 03_r36s_bootstrap_nui_window`
