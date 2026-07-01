@@ -36,6 +36,125 @@ MODE="${1:-${NWN_TEST_MODE:-test}}"
 MODULE_ID="${2:-${NWN_TEST_MODULE:-03_r36s_bootstrap_nui_window}}"
 TIMEOUT="${3:-${NWN_TEST_TIMEOUT:-180}}"
 SENTINEL="R36S_BOOTSTRAP_EXIT_CONFIRMED"
+LOAD_SENTINEL="R36S_BOOTSTRAP_LOAD_REQUESTED"
+LOAD_REQUEST_HANDLED=0
+SAVEINDEX_WRITTEN=0
+
+sanitize_field() {
+  local value="${1//$'\r'/ }"
+  value="${value//$'\n'/ }"
+  value="${value//|/ }"
+  printf '%s' "$value"
+}
+
+extract_bic_meta() {
+  local bic_file="$1"
+  python3 - "$bic_file" <<'PY'
+import struct
+import sys
+from pathlib import Path
+
+class_map = [
+    "Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin",
+    "Ranger", "Rogue", "Sorcerer", "Wizard", "Arcane Archer", "Assassin",
+    "Blackguard", "Black Monk", "Champion of Torm", "Red Dragon Disciple",
+    "Shadowdancer", "Harper Scout", "Neverwinter Nine", "Commoner",
+    "Beast", "Giant", "Magical Beast", "Outsider", "Shapechanger",
+    "Vermin", "Shadowdancer", "Harper Scout", "Arcane Archer", "Assassin",
+    "Blackguard", "Divine Champion", "Weapon Master", "Pale Master",
+    "Shifter", "Dwarven Defender", "Dragon Disciple", "Ooze",
+    "Eye of Gruumsh", "Shou Disciple", "Purple Dragon Knight",
+]
+
+path = Path(sys.argv[1])
+try:
+    data = path.read_bytes()
+    if len(data) < 56 or data[:4] != b"BIC ":
+        raise ValueError("not a BIC file")
+
+    (
+        struct_off, struct_count,
+        field_off, field_count,
+        label_off, label_count,
+        fielddata_off, fielddata_count,
+        fieldidx_off, fieldidx_count,
+        listidx_off, listidx_count,
+    ) = struct.unpack("<12I", data[8:56])
+
+    labels = [
+        data[label_off + i * 16:label_off + i * 16 + 16].split(b"\0", 1)[0].decode("latin1", "replace")
+        for i in range(label_count)
+    ]
+
+    def read_locstring(offset: int) -> str:
+        p = fielddata_off + offset
+        if p + 12 > len(data):
+            return ""
+        try:
+            _, _, count = struct.unpack("<III", data[p:p + 12])
+            p += 12
+            texts = []
+            for _ in range(count):
+                if p + 8 > len(data):
+                    break
+                _, length = struct.unpack("<II", data[p:p + 8])
+                p += 8
+                texts.append(data[p:p + length].decode("latin1", "replace"))
+                p += length
+            if texts:
+                return texts[0]
+        except Exception:
+            pass
+        raw = data[p:p + 128]
+        return raw.split(b"\0", 1)[0].decode("latin1", "replace")
+
+    def read_resref(offset: int) -> str:
+        p = fielddata_off + offset
+        if p >= len(data):
+            return ""
+        length = data[p]
+        if p + 1 + length > len(data):
+            return ""
+        return data[p + 1:p + 1 + length].decode("latin1", "replace")
+
+    found = {}
+    for i in range(field_count):
+        ftype, label_idx, fdata = struct.unpack("<III", data[field_off + i * 12:field_off + i * 12 + 12])
+        if label_idx >= len(labels):
+            continue
+        label = labels[label_idx]
+        if label not in {"FirstName", "LastName", "Portrait", "Class", "ClassLevel"}:
+            continue
+        if label in found:
+            continue
+        if label in {"FirstName", "LastName"}:
+            found[label] = read_locstring(fdata)
+        elif label == "Portrait":
+            found[label] = read_resref(fdata)
+        else:
+            found[label] = str(fdata)
+
+    first = found.get("FirstName", "")
+    last = found.get("LastName", "")
+    name = (first + " " + last).strip()
+    portrait = found.get("Portrait", "")
+    class_id = found.get("Class", "")
+    level = found.get("ClassLevel", "")
+    class_name = ""
+    if class_id.isdigit():
+        class_idx = int(class_id)
+        if 0 <= class_idx < len(class_map):
+            class_name = class_map[class_idx]
+    print("\t".join([
+        name.replace("\t", " ").replace("\n", " "),
+        portrait.replace("\t", " ").replace("\n", " "),
+        class_name.replace("\t", " ").replace("\n", " "),
+        level.replace("\t", " ").replace("\n", " "),
+    ]))
+except Exception:
+    print("\t\t\t")
+PY
+}
 
 case "$MODE" in
   load)
@@ -211,6 +330,21 @@ else
   fi
 fi
 
+if [ -f "$NWN_USERDIR/development/r36s_rsi.ncs" ]; then
+  echo "bootstrap RSI script already installed"
+else
+  if [ -f "$CUSTOM_DIR/development/r36s_rsi.ncs" ]; then
+    echo "installing bootstrap RSI script"
+    if cp -a "$CUSTOM_DIR/development/r36s_rsi.ncs" "$NWN_USERDIR/development/r36s_rsi.ncs" 2>/dev/null; then
+      echo "bootstrap RSI script installed"
+    else
+      echo "ERROR: failed to install bootstrap RSI script"
+    fi
+  else
+    echo "ERROR: missing source bootstrap RSI script: $CUSTOM_DIR/development/r36s_rsi.ncs"
+  fi
+fi
+
 if [ "$NWN_DEBUG" = "1" ]; then
   echo "=== User directory diagnostics ==="
   echo "USER=$USER"
@@ -355,6 +489,102 @@ sleep 10
 
 deadline=$((SECONDS + TIMEOUT))
 while true; do
+  if [ "$LOAD_REQUEST_HANDLED" -eq 0 ] && grep -Rqs -- "$LOAD_SENTINEL" "$NWNLOG" "$TESTLOG" 2>/dev/null; then
+    echo "R36S load request detected; scanning saves"
+    if [ "$SAVEINDEX_WRITTEN" -eq 0 ]; then
+      mkdir -p "$NWN_USERDIR/development" 2>/dev/null || true
+      SAVEINDEX_FILE="$NWN_USERDIR/development/r36s_saveindex.txt"
+      : > "$SAVEINDEX_FILE"
+      SAVES_WRITTEN=0
+      FIRST_SAVE_DIR=""
+      SAVES_DIR="${R36S_SAVES_DIR:-$NWN_USERDIR/saves}"
+      if [ ! -d "$SAVES_DIR" ]; then
+        SAVES_DIR="${R36S_SAVES_DIR:-$HOME/.local/share/Neverwinter Nights/saves}"
+      fi
+      if [ -d "$SAVES_DIR" ]; then
+        for save_dir in "$SAVES_DIR"/*; do
+          [ -d "$save_dir" ] || continue
+          folder="$(basename "$save_dir")"
+          save_name="$folder"
+          case "$folder" in
+            *" - "*) save_name="${folder#* - }" ;;
+          esac
+          area=""
+          if [ -f "$save_dir/savenfo.txt" ]; then
+            area="$(tr -d '\r\n' < "$save_dir/savenfo.txt")"
+          fi
+          mtime="$(stat -c '%y' "$save_dir" 2>/dev/null || true)"
+          module_name=""
+          for sav_file in "$save_dir"/*.sav; do
+            if [ -f "$sav_file" ]; then
+              module_name="$(basename "$sav_file" .sav)"
+              break
+            fi
+          done
+          character_name=""
+          portrait_resref=""
+          class_name=""
+          level=""
+          if [ -f "$save_dir/player.bic" ]; then
+            bic_meta="$(extract_bic_meta "$save_dir/player.bic")"
+            IFS=$'\t' read -r character_name portrait_resref class_name level <<EOF
+$bic_meta
+EOF
+          fi
+          folder="$(sanitize_field "$folder")"
+          save_name="$(sanitize_field "$save_name")"
+          area="$(sanitize_field "$area")"
+          mtime="$(sanitize_field "$mtime")"
+          module_name="$(sanitize_field "$module_name")"
+          character_name="$(sanitize_field "$character_name")"
+          portrait_resref="$(sanitize_field "$portrait_resref")"
+          class_name="$(sanitize_field "$class_name")"
+          level="$(sanitize_field "$level")"
+          save_line="$(printf 'SAVE|%s|%s|%s|%s|%s|%s|%s|%s|%s' "$folder" "$save_name" "$area" "$mtime" "$module_name" "$character_name" "$portrait_resref" "$class_name" "$level")"
+          echo "R36S_CHARACTER_META_NAME: $character_name"
+          echo "R36S_CHARACTER_META_PORTRAIT: $portrait_resref"
+          echo "R36S_CHARACTER_META_CLASS: $class_name"
+          echo "R36S_CHARACTER_META_LEVEL: $level"
+          echo "R36S_SAVEINDEX_V2_LINE: $save_line"
+          printf '%s\n' "$save_line" >> "$SAVEINDEX_FILE"
+          if [ -z "$FIRST_SAVE_DIR" ]; then
+            FIRST_SAVE_DIR="$save_dir"
+            if [ -f "$save_dir/screen.tga" ]; then
+              cp -a "$save_dir/screen.tga" "$NWN_USERDIR/development/r36s_preview.tga"
+              echo "R36S_RESMAN_COPY_PREVIEW: $NWN_USERDIR/development/r36s_preview.tga"
+            else
+              rm -f "$NWN_USERDIR/development/r36s_preview.tga"
+              echo "R36S_RESMAN_COPY_PREVIEW: missing"
+            fi
+            if [ -f "$save_dir/portrait.tga" ]; then
+              cp -a "$save_dir/portrait.tga" "$NWN_USERDIR/development/r36s_portrait.tga"
+              echo "R36S_RESMAN_COPY_PORTRAIT: $NWN_USERDIR/development/r36s_portrait.tga"
+            else
+              rm -f "$NWN_USERDIR/development/r36s_portrait.tga"
+              echo "R36S_RESMAN_COPY_PORTRAIT: missing"
+            fi
+            if [ -f "$save_dir/player.bic" ]; then
+              cp -a "$save_dir/player.bic" "$NWN_USERDIR/development/r36s_character.bic"
+              echo "R36S_RESMAN_COPY_CHARACTER: $NWN_USERDIR/development/r36s_character.bic"
+            else
+              rm -f "$NWN_USERDIR/development/r36s_character.bic"
+              echo "R36S_RESMAN_COPY_CHARACTER: missing"
+            fi
+          fi
+          SAVES_WRITTEN=$((SAVES_WRITTEN + 1))
+        done
+      fi
+      if [ "$SAVES_WRITTEN" -eq 0 ]; then
+        printf '%s\n' 'EMPTY|No saved games found' > "$SAVEINDEX_FILE"
+        rm -f "$NWN_USERDIR/development/r36s_preview.tga" "$NWN_USERDIR/development/r36s_portrait.tga"
+        rm -f "$NWN_USERDIR/development/r36s_character.bic"
+      fi
+      echo "Wrote saveindex resource: $SAVEINDEX_FILE"
+      SAVEINDEX_WRITTEN=1
+    fi
+    LOAD_REQUEST_HANDLED=1
+  fi
+
   if ! kill -0 "$NWPID" 2>/dev/null; then
     break
   fi
