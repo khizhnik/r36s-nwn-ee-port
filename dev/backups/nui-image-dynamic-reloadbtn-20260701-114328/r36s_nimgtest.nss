@@ -64,11 +64,7 @@ void main()
     jCol = JsonArrayInsert(jCol, NuiHeight(NuiSpacer(), 12.0f));
     jCol = JsonArrayInsert(jCol, jNote);
     jCol = JsonArrayInsert(jCol, NuiHeight(NuiSpacer(), 10.0f));
-    json jReloadRow = JsonArray();
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiSpacer());
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiWidth(NuiId(NuiButton(JsonString("Reload")), "btn_reload"), 220.0f));
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiSpacer());
-    jCol = JsonArrayInsert(jCol, NuiRow(jReloadRow));
+    jCol = JsonArrayInsert(jCol, NuiRow(JsonArrayInsert(JsonArrayInsert(JsonArray(), NuiSpacer()), NuiId(NuiButton(JsonString("Reload")), "btn_reload"))));
 
     json jWindow = NuiWindow(
         NuiCol(jCol),

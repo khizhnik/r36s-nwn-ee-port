@@ -2,27 +2,13 @@
 
 void main()
 {
+    WriteTimestampedLogEntry("R36S_NUI_IMAGE_TEST_OPEN");
+
     object oPC = GetFirstPC();
     if (oPC == OBJECT_INVALID)
     {
         return;
     }
-
-    string sEventType = NuiGetEventType();
-    string sEventElement = NuiGetEventElement();
-
-    if (sEventType == "click" && sEventElement == "btn_reload")
-    {
-        DelayCommand(0.25f, ExecuteScript("r36s_nimgrfsh", oPC));
-        return;
-    }
-
-    if (sEventType != "")
-    {
-        return;
-    }
-
-    WriteTimestampedLogEntry("R36S_NUI_IMAGE_TEST_OPEN");
 
     json jTitle = NuiLabel(JsonString("NuiImage Save Screen Test"), JsonInt(NUI_HALIGN_CENTER), JsonInt(NUI_VALIGN_TOP));
 
@@ -63,12 +49,6 @@ void main()
     jCol = JsonArrayInsert(jCol, NuiRow(jRow));
     jCol = JsonArrayInsert(jCol, NuiHeight(NuiSpacer(), 12.0f));
     jCol = JsonArrayInsert(jCol, jNote);
-    jCol = JsonArrayInsert(jCol, NuiHeight(NuiSpacer(), 10.0f));
-    json jReloadRow = JsonArray();
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiSpacer());
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiWidth(NuiId(NuiButton(JsonString("Reload")), "btn_reload"), 220.0f));
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiSpacer());
-    jCol = JsonArrayInsert(jCol, NuiRow(jReloadRow));
 
     json jWindow = NuiWindow(
         NuiCol(jCol),
@@ -81,11 +61,4 @@ void main()
         JsonBool(TRUE));
 
     NuiCreate(oPC, jWindow, "r36snui", "r36s_nimgtest");
-    SetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_TOKEN", GetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_TOKEN") + 1);
-
-    if (GetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_AUTOREFRESHED") == 0)
-    {
-        SetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_AUTOREFRESHED", 1);
-        DelayCommand(8.0f, ExecuteScript("r36s_nimgrfsh", oPC));
-    }
 }

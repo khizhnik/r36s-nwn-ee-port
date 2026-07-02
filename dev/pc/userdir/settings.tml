@@ -196,8 +196,8 @@
 			width = 640
 			[graphics.window.windowed.position]
 				mode = "remember"
-				x = 989
-				y = 478
+				x = 717
+				y = 427
 [input]
 	[input.keyboard]
 		shift-walk-mode-inverted = false

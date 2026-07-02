@@ -13,13 +13,30 @@ void main()
 
     if (sEventType == "click" && sEventElement == "btn_reload")
     {
-        DelayCommand(0.25f, ExecuteScript("r36s_nimgrfsh", oPC));
+        int nToken = GetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_TOKEN");
+        if (nToken > 0)
+        {
+            NuiDestroy(oPC, nToken);
+            SetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_TOKEN", 0);
+        }
+        DelayCommand(0.25f, ExecuteScript("r36s_nimgtest", oPC));
         return;
     }
 
     if (sEventType != "")
     {
         return;
+    }
+
+    if (GetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_REFRESH_PENDING") == 1)
+    {
+        int nToken = GetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_TOKEN");
+        if (nToken > 0)
+        {
+            NuiDestroy(oPC, nToken);
+            SetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_TOKEN", 0);
+        }
+        SetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_REFRESH_PENDING", 0);
     }
 
     WriteTimestampedLogEntry("R36S_NUI_IMAGE_TEST_OPEN");
@@ -64,11 +81,7 @@ void main()
     jCol = JsonArrayInsert(jCol, NuiHeight(NuiSpacer(), 12.0f));
     jCol = JsonArrayInsert(jCol, jNote);
     jCol = JsonArrayInsert(jCol, NuiHeight(NuiSpacer(), 10.0f));
-    json jReloadRow = JsonArray();
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiSpacer());
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiWidth(NuiId(NuiButton(JsonString("Reload")), "btn_reload"), 220.0f));
-    jReloadRow = JsonArrayInsert(jReloadRow, NuiSpacer());
-    jCol = JsonArrayInsert(jCol, NuiRow(jReloadRow));
+    jCol = JsonArrayInsert(jCol, NuiRow(JsonArrayInsert(JsonArrayInsert(JsonArray(), NuiSpacer()), NuiId(NuiButton(JsonString("Reload")), "btn_reload"))));
 
     json jWindow = NuiWindow(
         NuiCol(jCol),
@@ -86,6 +99,7 @@ void main()
     if (GetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_AUTOREFRESHED") == 0)
     {
         SetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_AUTOREFRESHED", 1);
-        DelayCommand(8.0f, ExecuteScript("r36s_nimgrfsh", oPC));
+        SetLocalInt(oPC, "R36S_NUI_IMAGE_TEST_REFRESH_PENDING", 1);
+        DelayCommand(8.0f, ExecuteScript("r36s_nimgtest", oPC));
     }
 }

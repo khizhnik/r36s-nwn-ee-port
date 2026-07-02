@@ -83,10 +83,7 @@ json BuildPreviewPanelState(string sState)
 
     if (sState == "loaded")
     {
-        json jPreview = NuiImage(JsonString("r36s_preview"), JsonInt(NUI_ASPECT_FIT), JsonInt(NUI_HALIGN_CENTER), JsonInt(NUI_VALIGN_MIDDLE));
-        jPreview = NuiWidth(jPreview, 180.0f);
-        jPreview = NuiHeight(jPreview, 120.0f);
-        jPanel = JsonArrayInsert(jPanel, NuiRow(JsonArrayInsert(JsonArray(), jPreview)));
+        jPanel = JsonArrayInsert(jPanel, NuiLabel(JsonString("Preview unavailable"), JsonInt(NUI_HALIGN_CENTER), JsonInt(NUI_VALIGN_MIDDLE)));
     }
     else if (sState == "empty")
     {
