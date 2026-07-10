@@ -10,6 +10,74 @@ void BootstrapDestroyCurrentWindow(object oPC)
     }
 }
 
+// Future indexed save model:
+//
+// Current implementation supports index 0 only.
+//
+// Intended helper family:
+// - R36S_GetSaveFolderByIndex()
+// - R36S_GetSaveNameByIndex()
+// - R36S_GetSaveAreaByIndex()
+// - R36S_GetSaveModuleByIndex()
+// - R36S_GetSaveCharacterNameByIndex()
+// - R36S_GetSavePortraitResRefByIndex()
+// - R36S_GetSavePreviewResRefByIndex()
+//
+// Selection should use:
+// - R36S_SELECTED_SAVE_INDEX
+// - R36S_SELECTED_SAVE_FOLDER
+//
+// TODO: move save-selection helpers into a shared include once NUI scripts stabilize.
+// TODO: remove legacy flat R36S_SAVEINDEX_* locals after the indexed model is complete.
+int R36S_GetSelectedSaveIndex(object oPC)
+{
+    int nIndex = GetLocalInt(oPC, "R36S_SELECTED_SAVE_INDEX");
+    if (nIndex < 0)
+    {
+        string sLegacyFolder = GetLocalString(oPC, "R36S_SELECTED_SAVE_FOLDER");
+        if (sLegacyFolder != "")
+        {
+            return 0;
+        }
+    }
+    return nIndex;
+}
+
+string R36S_GetSaveFolderByIndex(object oPC, int nIndex)
+{
+    if (nIndex == 0)
+    {
+        string sFolder = GetLocalString(oPC, "R36S_SAVEINDEX_0_FOLDER");
+        if (sFolder == "")
+        {
+            sFolder = GetLocalString(oPC, "R36S_SAVEINDEX_FOLDER");
+        }
+        return sFolder;
+    }
+    return "";
+}
+
+string R36S_GetSelectedSaveFolder(object oPC)
+{
+    int nIndex = R36S_GetSelectedSaveIndex(oPC);
+    string sFolder = GetLocalString(oPC, "R36S_SELECTED_SAVE_FOLDER");
+    if (sFolder != "")
+    {
+        return sFolder;
+    }
+    if (nIndex >= 0)
+    {
+        return R36S_GetSaveFolderByIndex(oPC, nIndex);
+    }
+    return "";
+}
+
+void R36S_SetSelectedSave(object oPC, int nIndex, string sFolder)
+{
+    SetLocalInt(oPC, "R36S_SELECTED_SAVE_INDEX", nIndex);
+    SetLocalString(oPC, "R36S_SELECTED_SAVE_FOLDER", sFolder);
+}
+
 string BootstrapLoadState(object oPC)
 {
     return GetLocalString(oPC, "R36S_SAVEINDEX_STATE");
@@ -275,16 +343,48 @@ void main()
 
         if (sEventType == "click" && sEventElement == "btn_load")
         {
-            WriteTimestampedLogEntry("R36S_BOOTSTRAP_LOAD_REQUESTED");
             if (oPC != OBJECT_INVALID)
             {
+                WriteTimestampedLogEntry("R36S_BOOTSTRAP_LOAD_REQUESTED");
                 SetLocalString(oPC, "R36S_SAVEINDEX_STATE", "loading");
                 SetLocalString(oPC, "R36S_SAVEINDEX_SAVE_NAME", "");
                 SetLocalString(oPC, "R36S_SAVEINDEX_AREA", "");
                 SetLocalString(oPC, "R36S_SAVEINDEX_MTIME", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_MODULE_NAME", "");
                 SetLocalString(oPC, "R36S_SAVEINDEX_FOLDER", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_CHARACTER_NAME", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_PORTRAIT_RESREF", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_CLASS_NAME", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_LEVEL", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_FOLDER", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_SAVE_NAME", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_AREA", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_MTIME", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_MODULE_NAME", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_CHARACTER_NAME", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_PORTRAIT_RESREF", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_CLASS_NAME", "");
+                SetLocalString(oPC, "R36S_SAVEINDEX_0_LEVEL", "");
+                R36S_SetSelectedSave(oPC, -1, "");
                 ShowLoadGameScreen(oPC);
                 DelayCommand(3.0f, ExecuteScript("r36s_rsi", oPC));
+            }
+            return;
+        }
+
+        if (sEventType == "click" && sEventElement == "btn_save_0")
+        {
+            if (oPC != OBJECT_INVALID)
+            {
+                int nSelectedIndex = 0;
+                string sFolder = R36S_GetSaveFolderByIndex(oPC, nSelectedIndex);
+                if (sFolder != "")
+                {
+                    R36S_SetSelectedSave(oPC, nSelectedIndex, sFolder);
+                    WriteTimestampedLogEntry("R36S_SAVE_SELECTED_INDEX: " + IntToString(nSelectedIndex));
+                    WriteTimestampedLogEntry("R36S_SAVE_SELECTED_FOLDER: " + sFolder);
+                    DelayCommand(0.1f, ExecuteScript("r36s_rsi", oPC));
+                }
             }
             return;
         }
@@ -304,7 +404,23 @@ void main()
 
         if (sEventType == "click" && sEventElement == "btn_load_screen_load")
         {
-            WriteTimestampedLogEntry("R36S_BOOTSTRAP_LOAD_SCREEN_LOAD_CLICKED");
+            int nSelectedIndex = -1;
+            string sSelectedFolder = "";
+            if (oPC != OBJECT_INVALID)
+            {
+                nSelectedIndex = R36S_GetSelectedSaveIndex(oPC);
+                sSelectedFolder = R36S_GetSelectedSaveFolder(oPC);
+            }
+
+            if (sSelectedFolder == "" || nSelectedIndex < 0)
+            {
+                WriteTimestampedLogEntry("R36S_BOOTSTRAP_LOAD_SAVE_NO_SELECTION");
+                return;
+            }
+
+            WriteTimestampedLogEntry("R36S_SELECTED_SAVE_INDEX: " + IntToString(nSelectedIndex));
+            WriteTimestampedLogEntry("R36S_SELECTED_SAVE_FOLDER: " + sSelectedFolder);
+            WriteTimestampedLogEntry("R36S_BOOTSTRAP_LOAD_SAVE_REQUESTED|" + IntToString(nSelectedIndex) + "|" + sSelectedFolder);
             return;
         }
 

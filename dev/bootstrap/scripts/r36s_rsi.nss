@@ -23,6 +23,74 @@ void BootstrapLogResManResource(string sLabel, string sResRef, int nResType)
     WriteTimestampedLogEntry(sLabel + "_FOUND: " + IntToString((sContent == "") ? 0 : 1));
 }
 
+// Future indexed save model:
+//
+// Current implementation supports index 0 only.
+//
+// Intended helper family:
+// - R36S_GetSaveFolderByIndex()
+// - R36S_GetSaveNameByIndex()
+// - R36S_GetSaveAreaByIndex()
+// - R36S_GetSaveModuleByIndex()
+// - R36S_GetSaveCharacterNameByIndex()
+// - R36S_GetSavePortraitResRefByIndex()
+// - R36S_GetSavePreviewResRefByIndex()
+//
+// Selection should use:
+// - R36S_SELECTED_SAVE_INDEX
+// - R36S_SELECTED_SAVE_FOLDER
+//
+// TODO: move save-selection helpers into a shared include once NUI scripts stabilize.
+// TODO: remove legacy flat R36S_SAVEINDEX_* locals after the indexed model is complete.
+int R36S_GetSelectedSaveIndex(object oPC)
+{
+    int nIndex = GetLocalInt(oPC, "R36S_SELECTED_SAVE_INDEX");
+    if (nIndex < 0)
+    {
+        string sLegacyFolder = GetLocalString(oPC, "R36S_SELECTED_SAVE_FOLDER");
+        if (sLegacyFolder != "")
+        {
+            return 0;
+        }
+    }
+    return nIndex;
+}
+
+string R36S_GetSaveFolderByIndex(object oPC, int nIndex)
+{
+    if (nIndex == 0)
+    {
+        string sFolder = GetLocalString(oPC, "R36S_SAVEINDEX_0_FOLDER");
+        if (sFolder == "")
+        {
+            sFolder = GetLocalString(oPC, "R36S_SAVEINDEX_FOLDER");
+        }
+        return sFolder;
+    }
+    return "";
+}
+
+string R36S_GetSelectedSaveFolder(object oPC)
+{
+    int nIndex = R36S_GetSelectedSaveIndex(oPC);
+    string sFolder = GetLocalString(oPC, "R36S_SELECTED_SAVE_FOLDER");
+    if (sFolder != "")
+    {
+        return sFolder;
+    }
+    if (nIndex >= 0)
+    {
+        return R36S_GetSaveFolderByIndex(oPC, nIndex);
+    }
+    return "";
+}
+
+void R36S_SetSelectedSave(object oPC, int nIndex, string sFolder)
+{
+    SetLocalInt(oPC, "R36S_SELECTED_SAVE_INDEX", nIndex);
+    SetLocalString(oPC, "R36S_SELECTED_SAVE_FOLDER", sFolder);
+}
+
 json BuildLoadButtons()
 {
     json jButtonsRow = JsonArray();
@@ -40,17 +108,45 @@ json BuildLoadButtons()
     return jRow;
 }
 
-json BuildSaveListState(string sState, string sFolder, string sSaveName, string sArea, string sMTime)
+json BuildSaveListState(object oPC, string sState, string sFolder, string sSaveName, string sArea, string sMTime)
 {
     json jPanel = JsonArray();
     jPanel = JsonArrayInsert(jPanel, NuiLabel(JsonString("Save List"), JsonInt(NUI_HALIGN_CENTER), JsonInt(NUI_VALIGN_TOP)));
 
     if (sState == "loaded")
     {
+        int nSelectedIndex = R36S_GetSelectedSaveIndex(oPC);
+        string sSelectedFolder = R36S_GetSelectedSaveFolder(oPC);
+        string sEntryFolder = R36S_GetSaveFolderByIndex(oPC, 0);
+        string sEntrySaveName = GetLocalString(oPC, "R36S_SAVEINDEX_0_SAVE_NAME");
+        string sEntryArea = GetLocalString(oPC, "R36S_SAVEINDEX_0_AREA");
+        string sEntryMTime = GetLocalString(oPC, "R36S_SAVEINDEX_0_MTIME");
+
+        if (sEntryFolder == "")
+        {
+            sEntryFolder = sFolder;
+        }
+        if (sEntrySaveName == "")
+        {
+            sEntrySaveName = sSaveName;
+        }
+        if (sEntryArea == "")
+        {
+            sEntryArea = sArea;
+        }
+        if (sEntryMTime == "")
+        {
+            sEntryMTime = sMTime;
+        }
+
+        string sEntryPrefix = "  ";
+        if (nSelectedIndex == 0 && sEntryFolder == sSelectedFolder)
+        {
+            sEntryPrefix = "> ";
+        }
+
         json jEntry = JsonArray();
-        jEntry = JsonArrayInsert(jEntry, NuiLabel(JsonString(sSaveName), JsonInt(NUI_HALIGN_LEFT), JsonInt(NUI_VALIGN_TOP)));
-        jEntry = JsonArrayInsert(jEntry, NuiLabel(JsonString(sArea), JsonInt(NUI_HALIGN_LEFT), JsonInt(NUI_VALIGN_TOP)));
-        jEntry = JsonArrayInsert(jEntry, NuiLabel(JsonString(sMTime), JsonInt(NUI_HALIGN_LEFT), JsonInt(NUI_VALIGN_TOP)));
+        jEntry = JsonArrayInsert(jEntry, NuiId(NuiButton(JsonString(sEntryPrefix + sEntrySaveName + "\n" + sEntryArea + "\n" + sEntryMTime)), "btn_save_0"));
 
         json jEntryFrame = NuiGroup(NuiCol(jEntry), TRUE, NUI_SCROLLBARS_NONE);
         jEntryFrame = NuiWidth(jEntryFrame, 320.0f);
@@ -109,12 +205,34 @@ json BuildPreviewPanelState(string sState)
 
 json BuildCharacterPanelState(object oPC, string sState, string sFolder, string sSaveName, string sArea, string sMTime)
 {
-    string sCharacterName = GetLocalString(oPC, "R36S_SAVEINDEX_CHARACTER_NAME");
-    string sPortraitResRef = GetLocalString(oPC, "R36S_SAVEINDEX_PORTRAIT_RESREF");
+    string sCharacterName = GetLocalString(oPC, "R36S_SAVEINDEX_0_CHARACTER_NAME");
+    string sPortraitResRef = GetLocalString(oPC, "R36S_SAVEINDEX_0_PORTRAIT_RESREF");
     string sPortraitImageResRef = sPortraitResRef + "l";
-    string sClassName = GetLocalString(oPC, "R36S_SAVEINDEX_CLASS_NAME");
-    string sLevel = GetLocalString(oPC, "R36S_SAVEINDEX_LEVEL");
-    string sModuleName = GetLocalString(oPC, "R36S_SAVEINDEX_MODULE_NAME");
+    string sClassName = GetLocalString(oPC, "R36S_SAVEINDEX_0_CLASS_NAME");
+    string sLevel = GetLocalString(oPC, "R36S_SAVEINDEX_0_LEVEL");
+    string sModuleName = GetLocalString(oPC, "R36S_SAVEINDEX_0_MODULE_NAME");
+
+    if (sCharacterName == "")
+    {
+        sCharacterName = GetLocalString(oPC, "R36S_SAVEINDEX_CHARACTER_NAME");
+    }
+    if (sPortraitResRef == "")
+    {
+        sPortraitResRef = GetLocalString(oPC, "R36S_SAVEINDEX_PORTRAIT_RESREF");
+        sPortraitImageResRef = sPortraitResRef + "l";
+    }
+    if (sClassName == "")
+    {
+        sClassName = GetLocalString(oPC, "R36S_SAVEINDEX_CLASS_NAME");
+    }
+    if (sLevel == "")
+    {
+        sLevel = GetLocalString(oPC, "R36S_SAVEINDEX_LEVEL");
+    }
+    if (sModuleName == "")
+    {
+        sModuleName = GetLocalString(oPC, "R36S_SAVEINDEX_MODULE_NAME");
+    }
 
     json jPanel = JsonArray();
     jPanel = JsonArrayInsert(jPanel, NuiLabel(JsonString("Character information"), JsonInt(NUI_HALIGN_CENTER), JsonInt(NUI_VALIGN_TOP)));
@@ -176,7 +294,7 @@ void ShowLoadGameScreenState(object oPC, string sState, string sFolder, string s
 
     json jBodyRow = JsonArray();
 
-    json jLeftPanel = BuildSaveListState(sState, sFolder, sSaveName, sArea, sMTime);
+    json jLeftPanel = BuildSaveListState(oPC, sState, sFolder, sSaveName, sArea, sMTime);
     jLeftPanel = NuiWidth(jLeftPanel, 340.0f);
     jLeftPanel = NuiHeight(jLeftPanel, 330.0f);
 
@@ -386,6 +504,17 @@ void main()
     BootstrapLogResManResource("R36S_RESMAN_PORTRAIT", "r36s_portrait", RESTYPE_TGA);
     BootstrapLogResManResource("R36S_RESMAN_CHARACTER", "r36s_character", RESTYPE_BIC);
     SetLocalString(oPC, "R36S_SAVEINDEX_STATE", "loaded");
+    // TODO: remove legacy flat R36S_SAVEINDEX_* locals after multi-save indexed model is complete.
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_FOLDER", sFolder);
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_SAVE_NAME", sSaveName);
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_AREA", sArea);
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_MTIME", sMTime);
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_MODULE_NAME", sModuleName);
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_CHARACTER_NAME", sCharacterName);
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_PORTRAIT_RESREF", sPortraitResRef);
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_CLASS_NAME", sClassName);
+    SetLocalString(oPC, "R36S_SAVEINDEX_0_LEVEL", sLevel);
+    // TODO: remove legacy flat R36S_SAVEINDEX_* locals after multi-save indexed model is complete.
     SetLocalString(oPC, "R36S_SAVEINDEX_FOLDER", sFolder);
     SetLocalString(oPC, "R36S_SAVEINDEX_SAVE_NAME", sSaveName);
     SetLocalString(oPC, "R36S_SAVEINDEX_AREA", sArea);
@@ -395,5 +524,9 @@ void main()
     SetLocalString(oPC, "R36S_SAVEINDEX_PORTRAIT_RESREF", sPortraitResRef);
     SetLocalString(oPC, "R36S_SAVEINDEX_CLASS_NAME", sClassName);
     SetLocalString(oPC, "R36S_SAVEINDEX_LEVEL", sLevel);
+    if (R36S_GetSelectedSaveFolder(oPC) == "" || R36S_GetSelectedSaveIndex(oPC) < 0)
+    {
+        R36S_SetSelectedSave(oPC, 0, sFolder);
+    }
     ShowLoadGameScreenState(oPC, "loaded", sFolder, sSaveName, sArea, sMTime);
 }

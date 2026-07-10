@@ -21,7 +21,7 @@
 Command used:
 
 ```bash
-cd "/home/khizhnik/.steam/debian-installation/steamapps/common/Neverwinter Nights/bin/linux-x86"
+cd "~/.steam/debian-installation/steamapps/common/Neverwinter Nights/bin/linux-x86"
 
 timeout 60s env DISPLAY=:0 \
   LIBGL_ALWAYS_SOFTWARE=1 \

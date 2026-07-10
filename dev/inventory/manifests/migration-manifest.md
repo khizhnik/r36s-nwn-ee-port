@@ -1,8 +1,8 @@
 # Migration Manifest
 
 - Generated: 2026-06-27 23:14:56 EEST
-- Source directories inspected: `/tmp`, `/home/khizhnik/Games/PortMaster/nwn-ee`, `SHADOW-TEST`, and all explicit project subtrees used in the bootstrap/NUI/tooling investigation.
-- Destination root: `/home/khizhnik/Games/PortMaster/r36s-nwn-ee-port/dev`
+- Source directories inspected: `/tmp`, `~/Games/PortMaster/nwn-ee`, `SHADOW-TEST`, and all explicit project subtrees used in the bootstrap/NUI/tooling investigation.
+- Destination root: `~/Games/PortMaster/r36s-nwn-ee-port/dev`
 - No files were deleted.
 - `port/` was not modified.
 
@@ -66,7 +66,7 @@
 ```text
 # Final dev tree
 
-/home/khizhnik/Games/PortMaster/r36s-nwn-ee-port/dev
+~/Games/PortMaster/r36s-nwn-ee-port/dev
 ├── baseline
 ├── bootstrap
 │   ├── build
