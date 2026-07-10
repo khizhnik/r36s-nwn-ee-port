@@ -386,13 +386,13 @@
 		[ui.nui.persistence]
 			[ui.nui.persistence."ContentIndex::Browser"]
 				[ui.nui.persistence."ContentIndex::Browser".props]
-					collapsed_repositories = [[], [], [], []]
+					collapsed_repositories = [[false, false], [], [], []]
 					lhs_sort = 1
 					selected_advert = "00000000-0000-0000-0000-000000000000"
-					selected_campaign = "00000000-0000-0000-0000-000000000000"
-					selected_lhs = 0
-					selected_module = "00000000-0000-0000-0000-000000000000"
-					selected_rhs = 0
+					selected_campaign = "9d368f9d-b22c-40af-95c1-79960482be96"
+					selected_lhs = 1
+					selected_module = "226fa48b-2960-439f-989c-7c4d3571dbfa"
+					selected_rhs = 2
 	[ui.party]
 		[ui.party.invite-popup]
 			enabled = true

@@ -1,6 +1,6 @@
 # Final dev tree
 
-/home/khizhnik/Games/PortMaster/r36s-nwn-ee-port/dev
+~/Games/PortMaster/r36s-nwn-ee-port/dev
 ├── baseline
 ├── bootstrap
 │   ├── build
